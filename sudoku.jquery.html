@@ -1,0 +1,112 @@
+<html>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+		<script type="text/javascript">
+			jQuery(function(){
+				var boardSize = parseInt(jQuery('#board-size-input').val());
+				jQuery('#generate-board-button').click(function(event){
+					var $this = jQuery(this),
+						$board = jQuery('#the-board tbody').empty();
+					for(var rowIndex=0; rowIndex<boardSize*boardSize; rowIndex++){
+						var $newRow = jQuery('<tr/>');
+						for(var colIndex=0; colIndex<boardSize*boardSize; colIndex++){
+							var $input = jQuery('<input type="text"/>').addClass('cell');
+							$input.data('responses', []);
+							for(var response=1; response<=boardSize*boardSize; response++){
+								$input.data('responses').push(response);
+							}
+							if((colIndex+1)%boardSize === 0){
+								$input.addClass('border-right');
+							}
+							if((rowIndex+1)%boardSize === 0){
+								$input.addClass('border-bottom');
+							}
+							$input.attr('data-row', rowIndex);
+							$input.attr('data-col', colIndex);
+							$input.attr('data-block', parseInt(colIndex/boardSize) + parseInt(rowIndex/boardSize)*boardSize);
+							var $cell = jQuery('<td/>').append( $input );
+							$newRow.append($cell);
+						}
+						$board.append( $newRow );
+					}
+				});
+				
+				jQuery('#the-board').on('keyup', '.cell', function(event){
+					var $this = jQuery(this),
+						theRow = $this.attr('data-row'),
+						theCol = $this.attr('data-col'),
+						theBlock = $this.attr('data-block'),
+						theVal = parseInt($this.val()),
+						singleResponses = [];
+					if($this.val() !== '' && $this.data('responses').indexOf(theVal) > -1){
+						$this.data('responses',[]);
+					}
+					// eliminate responses
+					jQuery('[data-row="'+theRow+'"], [data-col="'+theCol+'"], [data-block="'+theBlock+'"]').each(function(event){
+						var $valuesLeft = jQuery(this).data('responses');
+						if($valuesLeft.indexOf(theVal) > -1){
+							$valuesLeft.splice( $valuesLeft.indexOf(theVal), 1 );
+							if($valuesLeft.length === 1){
+								singleResponses.push(jQuery(this));
+							}
+						}
+					});
+					for(var singleIndex=0; singleIndex<singleResponses.length; singleIndex++){
+						var singleItem = singleResponses[singleIndex];
+						singleItem.addClass('one-response').val(singleItem.data('responses')[0]).keyup();
+					}
+					for(var blockIndex=0; blockIndex<boardSize*boardSize; blockIndex++){
+						checkForLastResponse(jQuery('[data-block="'+blockIndex+'"]'));
+					}
+				}).on('click', '.cell', function(event){
+					if(jQuery('#cheat-mode').prop('checked')){
+						console.log(jQuery(this).data('responses'));
+					}
+				});
+			});
+				
+				function checkForLastResponse($cells){
+					var seenResponses = {};
+					$cells.each(function(){
+						var leftResponses = jQuery(this).data('responses');
+						for(var responseIndex=0; responseIndex<leftResponses.length; responseIndex++){
+							var theResponses = seenResponses[leftResponses[responseIndex]] || [];
+							theResponses.push(jQuery(this));
+							seenResponses[leftResponses[responseIndex]] = theResponses;
+						}
+					});
+					for(var aResponse in seenResponses){
+						if(seenResponses[aResponse].length === 1){
+							seenResponses[aResponse][0].addClass('forced-response').data('responses', [parseInt(aResponse)]);
+						}
+					}
+				}
+		</script>
+		<style type="text/css">
+			#the-board { border-collapse: collapse; border-spacing: 0; margin: auto; }
+			#the-board td { padding: 0; }
+			#the-board .cell { border: solid; border-width: 1px 0 0 1px; font-size: 40px; height: 50px;
+				padding: 0; text-align: center; width: 50px; }
+			#the-board .cell.border-right { border-right: 1px solid; }
+			#the-board .cell.border-bottom { border-bottom: 1px solid; }
+			#the-board .cell.one-response { background-color: green; }
+			#the-board .cell.forced-response { background-color: orange; }
+		</style>
+	</head>
+	<body>
+		<fieldset style="margin: auto;">
+			<legend>What number to square (mainstream is 3)?</legend>
+			<input id="board-size-input" type="text" value="3"/>
+			<button id="generate-board-button">Generate!</button>
+			<div>
+				<span>Cheat?</span>
+				<input id="cheat-mode" type="checkbox"/>
+			</div>
+		</fieldset>
+		<table id="the-board">
+			<tbody>
+			
+			</tbody>
+		</table>
+	</body>
+</html>
